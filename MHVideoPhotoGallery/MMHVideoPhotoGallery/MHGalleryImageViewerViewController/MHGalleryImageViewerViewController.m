@@ -5,6 +5,9 @@
 //  Created by Mario Hahn on 27.12.13.
 //  Copyright (c) 2013 Mario Hahn. All rights reserved.
 //
+#define VHNOTIFY_REMOVE_DOCUMENT @"VHNOTIFY_REMOVE_DOCUMENT"
+
+
 
 #import "MHGalleryImageViewerViewController.h"
 #import "MHOverviewController.h"
@@ -168,8 +171,8 @@
     if (self.UICustomization.hideShare) {
         
         self.shareBarButton = [UIBarButtonItem.alloc initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace
-                                                                             target:self
-                                                                             action:nil];
+                                                                          target:self
+                                                                          action:nil];
         self.shareBarButton.width = 30;
     }
     
@@ -384,7 +387,7 @@
     
     UIBarButtonItem *fixed = [UIBarButtonItem.alloc initWithBarButtonSystemItem:UIBarButtonSystemItemTrash
                                                                          target:self
-                                                                         action:nil];
+                                                                         action:@selector(removeImage)];
     fixed.width = 30;
     
     [self enableOrDisbaleBarbButtons];
@@ -402,7 +405,28 @@
     }
 }
 
-
+- (void) removeImage{
+    UIActionSheet *actionSheet = [[UIActionSheet alloc]
+                                  initWithTitle:nil
+                                  delegate:self
+                                  cancelButtonTitle:@"Annulla"
+                                  destructiveButtonTitle:@"Rimuovi Immagine"
+                                  otherButtonTitles:nil];
+    [actionSheet showInView:self.view];
+}
+- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex {
+    if (buttonIndex == 0)
+    {
+        MHImageViewController *theCurrentViewController = self.pageViewController.viewControllers.firstObject;
+        NSDictionary* userInfo = @{@"pos": @(theCurrentViewController.pageIndex)};
+        double delayInSeconds = 0.2;
+        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+            [[NSNotificationCenter defaultCenter] postNotificationName:VHNOTIFY_REMOVE_DOCUMENT object:self userInfo:userInfo];
+        });
+        [self donePressed];
+    }
+}
 
 - (id<UIViewControllerInteractiveTransitioning>)navigationController:(UINavigationController *)navigationController
                          interactionControllerForAnimationController:(id<UIViewControllerAnimatedTransitioning>)animationController {
@@ -442,7 +466,7 @@
     if (theCurrentViewController.moviePlayer) {
         [theCurrentViewController removeAllMoviePlayerViewsAndNotifications];
     }
-
+    
     NSUInteger indexPage = theCurrentViewController.pageIndex;
     MHImageViewController *imageViewController =[MHImageViewController imageViewControllerForMHMediaItem:[self itemForIndex:indexPage-1] viewController:self];
     imageViewController.pageIndex = indexPage-1;
@@ -470,7 +494,7 @@
     if (theCurrentViewController.moviePlayer) {
         [theCurrentViewController removeAllMoviePlayerViewsAndNotifications];
     }
-
+    
     NSUInteger indexPage = theCurrentViewController.pageIndex;
     MHImageViewController *imageViewController =[MHImageViewController imageViewControllerForMHMediaItem:[self itemForIndex:indexPage+1] viewController:self];
     imageViewController.pageIndex = indexPage+1;
@@ -1102,26 +1126,26 @@
 }
 
 - (void)loadStateDidChange:(NSNotification *)notification{
-	MPMoviePlayerController *player = notification.object;
-	MPMovieLoadState loadState = player.loadState;
-	if (loadState & MPMovieLoadStatePlayable){
+    MPMoviePlayerController *player = notification.object;
+    MPMovieLoadState loadState = player.loadState;
+    if (loadState & MPMovieLoadStatePlayable){
         if (!self.videoWasPlayable) {
             [self performSelectorOnMainThread:@selector(changeToPlayable)
                                    withObject:nil
                                 waitUntilDone:YES];
         }
         
-	}
+    }
     if (loadState & MPMovieLoadStatePlaythroughOK){
         self.videoDownloaded = YES;
-	}
-	
-	if (loadState & MPMovieLoadStateStalled){
+    }
+    
+    if (loadState & MPMovieLoadStateStalled){
         
         [self performSelectorOnMainThread:@selector(stopMovie)
                                withObject:nil
                             waitUntilDone:YES];
-	}
+    }
 }
 
 -(void)updateTimerLabels{
@@ -1368,7 +1392,7 @@
     if (viewMode == MHGalleryViewModeImageViewerNavigationBarShown) {
         alpha= 1;
     }
-
+    
     self.moviePlayer.backgroundView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:viewMode];
     self.scrollView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:viewMode];
     self.viewController.pageViewController.view.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:viewMode];
@@ -1378,7 +1402,7 @@
     
     self.viewController.descriptionView.alpha =alpha;
     self.viewController.descriptionViewBackground.alpha =alpha;
-
+    
     if (!MHShouldShowStatusBar()) {
         alpha = 0;
     }
@@ -1494,7 +1518,7 @@
     self.playButton.frame = CGRectMake(self.viewController.view.frame.size.width/2-36, self.viewController.view.frame.size.height/2-36, 72, 72);
     self.scrollView.contentSize = CGSizeMake(self.view.bounds.size.width*self.scrollView.zoomScale, self.view.bounds.size.height*self.scrollView.zoomScale);
     self.imageView.frame = CGRectMake(0,0 , self.scrollView.contentSize.width,self.scrollView.contentSize.height);
-
+    
 }
 
 -(void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation{
@@ -1535,4 +1559,3 @@
     
 }
 @end
-
